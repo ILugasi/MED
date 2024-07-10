@@ -1,0 +1,25 @@
+|          Memory Evasion Detection
+|                   (MED) 
+|           ___     _____      ___
+|         /    `  .`      `.  '    \
+|        |     / /          \ \     |
+|        |    | |  .-.  .-.  | |    |
+|        `    \ \            / /    '
+|         \    `\ \        / /'    /
+|          `. _  \ \      / /  _ .'
+|             _/  | |    | |  \_
+|            `---'  /   /   `---'     
+|                .-`  ,`
+|                `---`        
+|  
+|        Improving cyber defense. 
+|        Innovative scanning. 
+|        Detecting evasion. 
+|        Enhancing security.
+| 
+|        Us:
+|          Eyal Schuldenfrei
+|          Itay Lugasi
+|          Idan Manbar
+|          Elad Zinkin
+

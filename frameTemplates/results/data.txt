@@ -1,0 +1,7 @@
+|
+|    - Process: <Process>
+|    - PID: <Pid>
+|    - Address: <Address>
+|    - Protection: <Protection>
+|    - Vad Tag: <Vad Tag>
+|
