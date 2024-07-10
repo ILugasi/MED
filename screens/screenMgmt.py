@@ -1,6 +1,4 @@
-from typing import Optional
-
-from utils import clear_screen, read_file_content, replace_template_elements, padText
+from utils import clear_screen, read_file_content, replace_template_elements, pad_text
 from os import path
 
 
@@ -39,7 +37,7 @@ class ScreenMgmt:
         template = read_file_content(path.join("frameTemplates", self.frame_id, "data.txt"))
         
         params = self.build_data_replace_params()
-        if isinstance(params,dict):
+        if isinstance(params, dict):
             list_params = [params]
         else:
             list_params = params
@@ -76,7 +74,7 @@ class ScreenMgmt:
         if passed_params:
             self.passed_params = passed_params
         clear_screen()
-        print(padText(self.build_screen()))
+        print(pad_text(self.build_screen()))
         self.get_input_options()
 
     def get_input_options(self):
@@ -101,10 +99,12 @@ class ScreenMgmt:
     def get_screen(frame_id: str, params: dict = None):
         ScreenMgmt.screens[frame_id].print_screen(params)
 
-    def option0(self):
+    @staticmethod
+    def option0():
         ScreenMgmt.get_screen("main")
-    
-    def get_option_0_text(self):
+
+    @staticmethod
+    def get_option_0_text():
         return "Return to Menu"
 
 

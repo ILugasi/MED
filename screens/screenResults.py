@@ -30,6 +30,3 @@ class ScreenResults(ScreenMgmt, metaclass=SingletonMeta):
     def peek(self):
         self.passed_params["results"] = self.current_results
         ScreenMgmt.get_screen("peek", self.passed_params)
-
-
-

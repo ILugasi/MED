@@ -11,6 +11,7 @@ class ScreenExit(ScreenMgmt, metaclass=SingletonMeta):
         return {
             'Exit': self.real_exit
         }
-    
-    def real_exit(self):
+
+    @staticmethod
+    def real_exit():
         sys.exit()

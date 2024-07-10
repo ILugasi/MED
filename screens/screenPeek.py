@@ -1,8 +1,5 @@
-import os
-
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
-
 
 
 class ScreenPeek(ScreenMgmt, metaclass=SingletonMeta):
@@ -19,5 +16,3 @@ class ScreenPeek(ScreenMgmt, metaclass=SingletonMeta):
 
     def return_option(self):
         ScreenMgmt.get_screen("results", self.passed_params)
-
-

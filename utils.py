@@ -6,20 +6,22 @@ import uuid
 
 MINIMUM_LINE_LENGTH = 45
 
+
 def read_file_content(file_path):
     try:
         with open(file_path, 'r') as file:
             return file.read()
     except FileNotFoundError:
         return ""
-    
-def padLine(line:str,size:int = MINIMUM_LINE_LENGTH,padd_chr:chr = " ",term_chr:chr = "|") -> str:
+
+
+def pad_line(line: str, size: int = MINIMUM_LINE_LENGTH, pad_chr: chr = " ", term_chr: chr = "|") -> str:
     if is_entirely_char(line) and line[0] != term_chr:
         return size * line[0] + "\n"
-    return line + (size - len(line)) * padd_chr + term_chr + "\n"
+    return line + (size - len(line)) * pad_chr + term_chr + "\n"
     
 
-def padText(text:str,padd_chr:chr = ' ',term_chr:chr = '|'):
+def pad_text(text: str, pad_chr: chr = ' ', term_chr: chr = '|'):
     new_text = ""
     max_len = longest_line_length(text)
     if max_len + 2 < MINIMUM_LINE_LENGTH:
@@ -30,7 +32,7 @@ def padText(text:str,padd_chr:chr = ' ',term_chr:chr = '|'):
         line = line.strip()
         if line == "":
             continue
-        new_text += padLine(line=line, size=max_len, padd_chr=padd_chr, term_chr=term_chr)
+        new_text += pad_line(line=line, size=max_len, pad_chr=pad_chr, term_chr=term_chr)
     return new_text
 
 

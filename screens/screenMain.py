@@ -1,6 +1,7 @@
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
 
+
 class ScreenMain(ScreenMgmt, metaclass=SingletonMeta):
     def __init__(self):
         super().__init__(frame_id="main", main_title="Main", sub_title="MED")
@@ -12,17 +13,23 @@ class ScreenMain(ScreenMgmt, metaclass=SingletonMeta):
             'About': self.about_us_page,
             
         }
-    def start_scan(self):
+
+    @staticmethod
+    def start_scan():
         ScreenMgmt.get_screen("start_scan")
 
-    def about_us_page(self):
+    @staticmethod
+    def about_us_page():
         ScreenMgmt.get_screen("about")
-        
-    def results_page(self):
+
+    @staticmethod
+    def results_page():
         ScreenMgmt.get_screen("results")
-    
-    def option0(self):
+
+    @staticmethod
+    def option0():
         ScreenMgmt.get_screen("exit")
-    
-    def get_option_0_text(self):
+
+    @staticmethod
+    def get_option_0_text():
         return "Exit"
