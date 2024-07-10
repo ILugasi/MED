@@ -1,0 +1,174 @@
+[
+    {
+        "Hexdump": [
+            {
+                "char": ".\\$...4.........", 
+                "hex": "8b 5c 24 04 8d a3 34 00 01 00 89 e5 8b 13 83 fa", 
+                "address": "0xe40000L"
+            }, 
+            {
+                "char": ".u/j.j.j..K....C", 
+                "hex": "00 75 2f 6a 00 6a 00 6a 00 8b 4b 14 ff d1 89 43", 
+                "address": "0xe40010L"
+            }, 
+            {
+                "char": "$j..K.Q.K,Q.K(Q.", 
+                "hex": "24 6a 00 8b 4b 20 51 8b 4b 2c 51 8b 4b 28 51 8d", 
+                "address": "0xe40020L"
+            }, 
+            {
+                "char": "K0Q.K$Q.K.......", 
+                "hex": "4b 30 51 8b 4b 24 51 8b 4b 18 ff d1 c7 03 01 00", 
+                "address": "0xe40030L"
+            }
+        ], 
+        "Protection": "PAGE_READWRITE", 
+        "Flags": "PrivateMemory: 1, Protection: 4", 
+        "Vad Tag": "VadS", 
+        "Address": "0xe40000L", 
+        "Process": "Gargoyle1.exe", 
+        "Disassembly": [
+            {
+                "instruction": "MOV EBX, [ESP+0x4]", 
+                "hex": "8b5c2404", 
+                "address": "0xe40000L"
+            }, 
+            {
+                "instruction": "LEA ESP, [EBX+0x10034]", 
+                "hex": "8da334000100", 
+                "address": "0xe40004L"
+            }, 
+            {
+                "instruction": "MOV EBP, ESP", 
+                "hex": "89e5", 
+                "address": "0xe4000aL"
+            }, 
+            {
+                "instruction": "MOV EDX, [EBX]", 
+                "hex": "8b13", 
+                "address": "0xe4000cL"
+            }, 
+            {
+                "instruction": "CMP EDX, 0x0", 
+                "hex": "83fa00", 
+                "address": "0xe4000eL"
+            }, 
+            {
+                "instruction": "JNZ 0xe40042", 
+                "hex": "752f", 
+                "address": "0xe40011L"
+            }, 
+            {
+                "instruction": "PUSH 0x0", 
+                "hex": "6a00", 
+                "address": "0xe40013L"
+            }, 
+            {
+                "instruction": "PUSH 0x0", 
+                "hex": "6a00", 
+                "address": "0xe40015L"
+            }, 
+            {
+                "instruction": "PUSH 0x0", 
+                "hex": "6a00", 
+                "address": "0xe40017L"
+            }, 
+            {
+                "instruction": "MOV ECX, [EBX+0x14]", 
+                "hex": "8b4b14", 
+                "address": "0xe40019L"
+            }, 
+            {
+                "instruction": "CALL ECX", 
+                "hex": "ffd1", 
+                "address": "0xe4001cL"
+            }, 
+            {
+                "instruction": "MOV [EBX+0x24], EAX", 
+                "hex": "894324", 
+                "address": "0xe4001eL"
+            }, 
+            {
+                "instruction": "PUSH 0x0", 
+                "hex": "6a00", 
+                "address": "0xe40021L"
+            }, 
+            {
+                "instruction": "MOV ECX, [EBX+0x20]", 
+                "hex": "8b4b20", 
+                "address": "0xe40023L"
+            }, 
+            {
+                "instruction": "PUSH ECX", 
+                "hex": "51", 
+                "address": "0xe40026L"
+            }, 
+            {
+                "instruction": "MOV ECX, [EBX+0x2c]", 
+                "hex": "8b4b2c", 
+                "address": "0xe40027L"
+            }, 
+            {
+                "instruction": "PUSH ECX", 
+                "hex": "51", 
+                "address": "0xe4002aL"
+            }, 
+            {
+                "instruction": "MOV ECX, [EBX+0x28]", 
+                "hex": "8b4b28", 
+                "address": "0xe4002bL"
+            }, 
+            {
+                "instruction": "PUSH ECX", 
+                "hex": "51", 
+                "address": "0xe4002eL"
+            }, 
+            {
+                "instruction": "LEA ECX, [EBX+0x30]", 
+                "hex": "8d4b30", 
+                "address": "0xe4002fL"
+            }, 
+            {
+                "instruction": "PUSH ECX", 
+                "hex": "51", 
+                "address": "0xe40032L"
+            }, 
+            {
+                "instruction": "MOV ECX, [EBX+0x24]", 
+                "hex": "8b4b24", 
+                "address": "0xe40033L"
+            }, 
+            {
+                "instruction": "PUSH ECX", 
+                "hex": "51", 
+                "address": "0xe40036L"
+            }, 
+            {
+                "instruction": "MOV ECX, [EBX+0x18]", 
+                "hex": "8b4b18", 
+                "address": "0xe40037L"
+            }, 
+            {
+                "instruction": "CALL ECX", 
+                "hex": "ffd1", 
+                "address": "0xe4003aL"
+            }, 
+            {
+                "instruction": "DB 0xc7", 
+                "hex": "c7", 
+                "address": "0xe4003cL"
+            }, 
+            {
+                "instruction": "ADD EAX, [ECX]", 
+                "hex": "0301", 
+                "address": "0xe4003dL"
+            }, 
+            {
+                "instruction": "DB 0x0", 
+                "hex": "00", 
+                "address": "0xe4003fL"
+            }
+        ], 
+        "Pid": 7592
+    }
+]
