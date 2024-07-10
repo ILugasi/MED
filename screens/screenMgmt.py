@@ -1,6 +1,6 @@
 from typing import Optional
 
-from utils import clear_screen, read_file_content, replaceTemplateElements, padText
+from utils import clear_screen, read_file_content, replace_template_elements, padText
 from os import path
 
 
@@ -13,15 +13,16 @@ class ScreenMgmt:
         self.sub_title = sub_title
         self.frame_template_text = read_file_content("frameTemplates/frame.txt")
         self.options = {}
+        self.passed_params = {}
 
         if frame_id not in ScreenMgmt.screens:
             ScreenMgmt.screens[frame_id] = self
         
-    def build_parameters(self, params: dict):
+    def build_parameters(self):
         return {
             'main_title': self.main_title,
             'sub_title': self.build_sub_title(),
-            'data': self.build_data(params),
+            'data': self.build_data(),
             'options': self.build_options(),
             'option0': self.get_option_0_text()
             }
@@ -29,26 +30,26 @@ class ScreenMgmt:
     def build_sub_title(self):
         if self.sub_title:
             template = read_file_content(path.join("frameTemplates", "sub_title.txt"))
-            return replaceTemplateElements(template,{'sub_title': self.sub_title})
+            return replace_template_elements(template, {'sub_title': self.sub_title})
         else:
             return ""
         
-    def build_data(self, input_params: None):
+    def build_data(self):
         data = ""
         template = read_file_content(path.join("frameTemplates", self.frame_id, "data.txt"))
         
-        params = self.build_data_replace_params(input_params)
+        params = self.build_data_replace_params()
         if isinstance(params,dict):
             list_params = [params]
         else:
             list_params = params
 
         for single_replace_params in list_params:
-            data += replaceTemplateElements(template,single_replace_params) + "\n"
+            data += replace_template_elements(template, single_replace_params) + "\n"
 
         return data
 
-    def build_data_replace_params(self, input_params: Optional[dict]):
+    def build_data_replace_params(self):
         return {}
     
     def build_options(self):
@@ -61,19 +62,21 @@ class ScreenMgmt:
                 'index': str(i),
                 'description': option_description
             }
-            options_text += replaceTemplateElements(options_template,index_description_replace_params) + "\n"
+            options_text += replace_template_elements(options_template, index_description_replace_params) + "\n"
             i += 1                                                    
         return options_text
 
     def build_options_params(self):
         return {}
 
-    def build_screen(self, params: dict):
-        return replaceTemplateElements(self.frame_template_text, self.build_parameters(params))
+    def build_screen(self):
+        return replace_template_elements(self.frame_template_text, self.build_parameters())
 
-    def print_screen(self, params: dict):
+    def print_screen(self, passed_params: dict):
+        if passed_params:
+            self.passed_params = passed_params
         clear_screen()
-        print(padText(self.build_screen(params)))
+        print(padText(self.build_screen()))
         self.get_input_options()
 
     def get_input_options(self):
