@@ -3,7 +3,7 @@ import os
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
 from utils import load_json_from_file, filter_result_json
-
+from analyzers import  vt
 
 class ScreenResults(ScreenMgmt, metaclass=SingletonMeta):
     def __init__(self):
@@ -23,5 +23,5 @@ class ScreenResults(ScreenMgmt, metaclass=SingletonMeta):
 
     def upload_results_to_vt(self):
         # Todo: Lugasi, do your magic here, self.last_out_folder is the results
-        print(self.last_out_folder)
+        print(vt.analyze(self.last_out_folder))
 
