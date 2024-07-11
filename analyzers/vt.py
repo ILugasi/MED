@@ -5,7 +5,7 @@ import os
 import glob
 from dotenv import load_dotenv
 load_dotenv()
-API_KEY = os.getenv('API_KEY')
+API_KEY = os.getenv('VT_API_KEY')
 
 
 def get_dnr_files(directory):
@@ -15,20 +15,23 @@ def get_dnr_files(directory):
 
 
 def analyze(directory):
+    if not API_KEY:
+        input("Couldn't find ENV variable VT_API_KEY, press ENTER to return")
+        return None
     files = get_dnr_files(directory)
-    ids={}
-    ret=""
+    ids = {}
+    ret = ""
     for file in files:
-        ids[upload_file(file)]=os.path.basename(file)
+        ids[upload_file(file)] = os.path.basename(file)
     for file_id in ids.keys():
-        found=False
+        found = False
         results = get_scan_results(file_id)
         for key, value in results.items():
             if value['result'] is not None:
-                ret+=f"{ids[file_id]}:{value['engine_name']} detects {value['category']} with {value['result']}\n"
-                found=True
+                ret += f"{ids[file_id]}:{value['engine_name']} detects {value['category']} with {value['result']}\n"
+                found = True
         if not found:
-            ret+=f"{ids[file_id]}:no detection found\n"
+            ret += f"{ids[file_id]}:no detection found\n"
     return ret
 
 
@@ -46,6 +49,7 @@ def upload_file(file_path):
     else:
         print(f"Error uploading file: {response.status_code}")
         print(response.json())
+        input("press ENTER to return")
         return None
 
 
@@ -67,6 +71,7 @@ def get_scan_results(file_id):
         else:
             print(f"Error getting scan results: {response.status_code}")
             print(response.json())
+            input("press ENTER to return")
             return None
 
 

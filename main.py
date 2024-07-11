@@ -4,6 +4,7 @@ from screens.screenExit import ScreenExit
 from screens.screenMain import ScreenMain
 from screens.screenPeek import ScreenPeek
 from screens.screenResults import ScreenResults
+from screens.screenVT import ScreenVT
 from screens.screenWelcome import ScreenWelcome
 from screens.screenStartScan import ScreenStartScan
 from screens.screenMgmt import ScreenMgmt
@@ -19,5 +20,6 @@ ScreenResults()
 ScreenPeek()
 ScreenAbout()
 ScreenBrowseResults()
+ScreenVT()
 
 ScreenMgmt.get_screen("welcome")
