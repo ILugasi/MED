@@ -41,7 +41,7 @@ def upload_file(file_path):
         'X-Apikey': API_KEY
     }
     files = {'file': (file_path, open(file_path, 'rb'))}
-    print(f'uploading {file_path}')
+    # print(f'uploading {file_path}')
     response = requests.post(url, headers=headers, files=files)
     if response.status_code == 200:
         file_id = response.json()['data']['id']
@@ -58,7 +58,7 @@ def get_scan_results(file_id):
     headers = {
         'X-Apikey': API_KEY
     }
-    print(url)
+    # print(url)
     while True:
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
@@ -66,7 +66,7 @@ def get_scan_results(file_id):
             if result['data']['attributes']['status'] == 'completed':
                 return result['data']['attributes']['results']
             else:
-                print("Scan in progress, waiting for 10 seconds...")
+                # print("Scan in progress, waiting for 10 seconds...")
                 time.sleep(10)
         else:
             print(f"Error getting scan results: {response.status_code}")
