@@ -52,10 +52,14 @@ class ScreenMgmt:
     
     def build_options(self):
         self.options = self.build_options_params()
+        if self.is_options_choice():
+            list_options = self.options.keys()
+        else:
+            list_options = self.options
         i = 1
         options_text = ""
         options_template = read_file_content(path.join("frameTemplates", "option.txt"))
-        for option_description in self.options.keys():
+        for option_description in list_options:
             index_description_replace_params = {
                 'index': str(i),
                 'description': option_description
@@ -75,11 +79,10 @@ class ScreenMgmt:
             self.passed_params = passed_params
         clear_screen()
         print(pad_text(self.build_screen()))
-        self.get_input_options()
+        self.get_input()
 
-    def get_input_options(self):
-        amount_options = len(self.options)
-        keys_list = list(self.options.keys())
+    def get_input_list_choice(self, list_options: list):
+        amount_options = len(list_options)
         while True:
             user_input = input()
             try:
@@ -87,13 +90,19 @@ class ScreenMgmt:
                 if choice == 0:
                     self.option0()
                 elif 1 <= choice <= amount_options:
-                    selected_key = keys_list[choice - 1]
-                    selected_function = self.options[selected_key]
-                    selected_function()
+                    return list_options[choice-1]
                 else:
                     print(f"Error: The number is not in the options.")
             except ValueError:
                 print("Error: Input is not a valid number. Please try again.")
+
+    def get_input(self):
+        if self.is_options_choice():
+            choice = self.get_input_list_choice(list(self.options.keys()))
+            self.options[choice]()
+        else:
+            choice = self.get_input_list_choice(self.build_list_options())
+            self.run_list_option_func(choice)
 
     @staticmethod
     def get_screen(frame_id: str, params: dict = None):
@@ -106,6 +115,17 @@ class ScreenMgmt:
     @staticmethod
     def get_option_0_text():
         return "Return to Menu"
+
+    @staticmethod
+    def is_options_choice():
+        return True
+
+    def run_list_option_func(self, choice: str):
+        pass
+
+    @staticmethod
+    def build_list_options():
+        return []
 
 
     

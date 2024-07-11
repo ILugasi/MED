@@ -9,9 +9,8 @@ class ScreenMain(ScreenMgmt, metaclass=SingletonMeta):
     def build_options_params(self):
         return {
             'Start Scan': self.start_scan,
-            'Results': self.results_page,
+            'Browse Results': self.browse_results_page,
             'About': self.about_us_page,
-            
         }
 
     @staticmethod
@@ -23,8 +22,8 @@ class ScreenMain(ScreenMgmt, metaclass=SingletonMeta):
         ScreenMgmt.get_screen("about")
 
     @staticmethod
-    def results_page():
-        ScreenMgmt.get_screen("results")
+    def browse_results_page():
+        ScreenMgmt.get_screen("browse_results")
 
     @staticmethod
     def option0():

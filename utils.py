@@ -70,12 +70,17 @@ def get_base_path():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def create_folder():
+def get_outputs_folder():
     base_path = get_base_path()
+    return os.path.join(base_path, "outputs")
+
+
+def create_folder():
+    outputs_folder = get_outputs_folder()
     current_datetime = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     unique_id = str(uuid.uuid4())
     folder_name = f"{current_datetime}_{unique_id}"
-    full_path = os.path.join(base_path, "outputs", folder_name)
+    full_path = os.path.join(outputs_folder, folder_name)
     os.makedirs(full_path)
     return full_path
 
@@ -125,3 +130,21 @@ def prettify_disassembly(disassembly_dict: dict):
         instruction = entry['instruction']
         text += f"{address.replace('L', '').zfill(18)} {hex_code.ljust(16)} {instruction}\n"
     return text
+
+
+def get_folder_names(directory):
+    try:
+        entries = os.listdir(directory)
+        folder_names = [entry for entry in entries if os.path.isdir(os.path.join(directory, entry))]
+        reversed_list = folder_names[::-1]
+        return reversed_list
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+
+
+def convert_folder_format(entry):
+    datetime_str, uuid_str = entry.rsplit('_', 1)
+    dt_object = datetime.datetime.strptime(datetime_str, '%Y-%m-%d_%H-%M-%S')
+    new_datetime_format = dt_object.strftime('%H:%M:%S %d/%m/%Y')
+    return f"{new_datetime_format} - {uuid_str}"
