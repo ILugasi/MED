@@ -77,8 +77,9 @@ class ScreenMgmt:
     def print_screen(self, passed_params: dict):
         if passed_params:
             self.passed_params = passed_params
+        frame = pad_text(self.build_screen())
         clear_screen()
-        print(pad_text(self.build_screen()))
+        print(frame)
         self.get_input()
 
     def get_input_list_choice(self, list_options: list):
