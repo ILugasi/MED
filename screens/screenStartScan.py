@@ -1,3 +1,6 @@
+import threading
+
+from animation.loadingAnimation import loading_screen
 from consts import VOLATILITY_TOP_BANNER
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
@@ -6,6 +9,9 @@ from utils import create_folder, get_base_path, save_json_to_folder, format_resu
 import subprocess
 import json
 import os
+
+stdout = ""
+stderr = ""
 
 
 class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
@@ -18,11 +24,19 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
         }
     
     def scan_dump_file_option(self):
-        dump_file_path = r"C:\Users\Eyal.Schuldenfrei\Documents\Hamihlala Lminhal\SemesterB\MED-Project\meomry_dumps\gargoyle_running_after_patch\gargoyle_running_after_patch.raw" # input("Please enter dump file path: ").strip().strip('"').strip("'")
-        profile = "Win10x86_19041"  # input("Please enter dump file profile: ").strip().strip('"').strip("'")
+        dump_file_path = input("Please enter dump file path: ").strip().strip('"').strip("'")
+        profile = input("Please enter dump file profile: ").strip().strip('"').strip("'")
         self.scan_dump_file(dump_file_path, profile)
 
+    @staticmethod
+    def run_sub_process(cmd):
+        global stdout, stderr
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+
     def scan_dump_file(self, dump_file_path: str, profile):
+        global stdout, stderr
         base_path = get_base_path()
         python2_path = os.getenv("PYTHON2_PATH")
         out_folder_path = create_folder()
@@ -37,17 +51,19 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
             '--output=json',
             '-D', out_folder_path
         ]
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.stderr.strip() != VOLATILITY_TOP_BANNER:
+        output_thread = threading.Thread(target=self.run_sub_process, args=(cmd,))
+        output_thread.start()
+        loading_screen(output_thread)
+        output_thread.join()
+        if stderr != VOLATILITY_TOP_BANNER:
             print(f"Command resulted error\n"
                   f"Press ENTER to return to the main menu:\n"
-                  f"Error: {result.stderr}")
+                  f"Error: {stderr}")
             input()
             return ScreenMgmt.get_screen("main")
 
         else:
-            formatted_results = format_results(json.loads(result.stdout))
+            formatted_results = format_results(json.loads(stdout))
             save_json_to_folder(formatted_results, out_folder_path, "results.json")
             self.passed_params["out_folder"] = out_folder_path
             ScreenMgmt.get_screen("results", self.passed_params)
