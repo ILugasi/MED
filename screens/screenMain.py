@@ -4,7 +4,7 @@ from singletonMeta import SingletonMeta
 
 class ScreenMain(ScreenMgmt, metaclass=SingletonMeta):
     def __init__(self):
-        super().__init__(frame_id="main", main_title="Main", sub_title="MED")
+        super().__init__(frame_id="main", main_title="Main", sub_title="DETECTING THE UNDETECTABLE")
 
     def build_options_params(self):
         return {
