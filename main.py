@@ -13,8 +13,14 @@ from screens.screenMgmt import ScreenMgmt
 
 from dotenv import load_dotenv
 
+import configLogger
+import logging
+
+configLogger.config()
+logger = logging.getLogger(__name__)
 
 def main():
+    logger.info("MED was launched")
     try:
         load_dotenv()
 
@@ -30,7 +36,7 @@ def main():
 
         ScreenMgmt.get_screen("welcome")
     except KeyboardInterrupt:
-        print("\nCtrl+C caught. We can't believe you are leaving :(")
+        logger.info("Ctrl+C caught. We can't believe you are leaving :(")
         sys.exit(0)
 
 

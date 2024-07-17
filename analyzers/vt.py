@@ -4,6 +4,10 @@ import time
 import os
 import glob
 from dotenv import load_dotenv
+
+import logging
+
+logger = logging.getLogger(__name__)
 load_dotenv()
 API_KEY = os.getenv('VT_API_KEY')
 
@@ -41,7 +45,7 @@ def upload_file(file_path):
         'X-Apikey': API_KEY
     }
     files = {'file': (file_path, open(file_path, 'rb'))}
-    # print(f'uploading {file_path}')
+    logger.info(f'uploading {file_path}')
     response = requests.post(url, headers=headers, files=files)
     if response.status_code == 200:
         file_id = response.json()['data']['id']
@@ -58,7 +62,7 @@ def get_scan_results(file_id):
     headers = {
         'X-Apikey': API_KEY
     }
-    # print(url)
+    logger.info(f"querying results from url: '{url}'")
     while True:
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
@@ -69,8 +73,7 @@ def get_scan_results(file_id):
                 # print("Scan in progress, waiting for 10 seconds...")
                 time.sleep(10)
         else:
-            print(f"Error getting scan results: {response.status_code}")
-            print(response.json())
+            logger.error(f"Error getting scan results: {response.status_code}:\n{response.json()}")
             input("press ENTER to return")
             return None
 
@@ -80,12 +83,12 @@ def main():
     parser.add_argument('directory', type=str, help="The path to the file to be scanned.")
 
     args = parser.parse_args()
-    print(analyze(args.directory))
+    logger.info(analyze(args.directory))
     file_id = upload_file(args.file_path)
     if file_id:
         results = get_scan_results(file_id)
         if results:
-            print(results)
+            logger.info(results)
 
 
 if __name__ == '__main__':
