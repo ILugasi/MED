@@ -8,7 +8,7 @@ def get_logger_relative_path():
 def config():
     logger = logging.getLogger()
     # Create a logger object
-    logger.setLevel(logging.DEBUG)  # Set the overall logging level for the logger
+    logger.setLevel(logging.INFO)  # Set the overall logging level for the logger
 
     # Create a console handler and set its level
     console_handler = logging.StreamHandler()

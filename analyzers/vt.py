@@ -1,4 +1,6 @@
 import argparse
+from datetime import datetime
+
 import requests
 import time
 import os
@@ -7,9 +9,12 @@ from dotenv import load_dotenv
 
 import logging
 
+from utils import save_json_to_folder
+
 logger = logging.getLogger(__name__)
 load_dotenv()
 API_KEY = os.getenv('VT_API_KEY')
+VT_RESULTS_FILE = "vt_results.txt"
 
 
 def get_dnr_files(directory):
@@ -36,7 +41,14 @@ def analyze(directory):
                 found = True
         if not found:
             ret += f"{ids[file_id]}:no detection found\n"
-    return ret
+
+    now = datetime.now().strftime('%H:%M:%S %d/%m/%Y')
+    results = {
+        "last_scan_date": now,
+        "results": ret
+    }
+    logger.info(f"Saving VT results to folder '{directory}', file: {VT_RESULTS_FILE}")
+    save_json_to_folder(results, directory, VT_RESULTS_FILE)
 
 
 def upload_file(file_path):
@@ -62,7 +74,7 @@ def get_scan_results(file_id):
     headers = {
         'X-Apikey': API_KEY
     }
-    logger.info(f"querying results from url: '{url}'")
+    logger.info(f"querying results from url: '{url}'. This may take few minutes")
     while True:
         response = requests.get(url, headers=headers)
         if response.status_code == 200:

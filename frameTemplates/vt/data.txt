@@ -1,2 +1,4 @@
-<<VT>>
+|    Last scan date: <last_scan_date>
+|
+<<results>>
 |
