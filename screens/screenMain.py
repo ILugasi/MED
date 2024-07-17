@@ -10,6 +10,7 @@ class ScreenMain(ScreenMgmt, metaclass=SingletonMeta):
         return {
             'Start Scan': self.start_scan,
             'Browse Results': self.browse_results_page,
+            'Logs': self.logs_page,
             'About': self.about_us_page,
         }
 
@@ -24,6 +25,10 @@ class ScreenMain(ScreenMgmt, metaclass=SingletonMeta):
     @staticmethod
     def browse_results_page():
         ScreenMgmt.get_screen("browse_results")
+
+    @staticmethod
+    def logs_page():
+        ScreenMgmt.get_screen("logs")
 
     @staticmethod
     def option0():

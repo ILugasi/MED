@@ -3,6 +3,7 @@ import sys
 from screens.screenAbout import ScreenAbout
 from screens.screenBrowseResults import ScreenBrowseResults
 from screens.screenExit import ScreenExit
+from screens.screenLogs import ScreenLogs
 from screens.screenMain import ScreenMain
 from screens.screenPeek import ScreenPeek
 from screens.screenResults import ScreenResults
@@ -33,6 +34,7 @@ def main():
         ScreenAbout()
         ScreenBrowseResults()
         ScreenVT()
+        ScreenLogs()
 
         ScreenMgmt.get_screen("welcome")
     except KeyboardInterrupt:
