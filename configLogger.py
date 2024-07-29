@@ -1,12 +1,20 @@
 import logging
 
 
-def get_logger_relative_path():
+def get_persistent_logger_path():
     return 'log/persistent.log'
 
 
-def get_logger_overwrite_path():
+def get_per_run_logger_path():
     return 'log/per_run.log'
+
+
+def write_to_log_files(message: str):
+    with open(get_per_run_logger_path(), mode='a') as per_run_log:
+        per_run_log.write(message)
+    with open(get_persistent_logger_path(), mode='a') as persistent_log:
+        persistent_log.write(message)
+
 
 
 def config():
@@ -19,11 +27,14 @@ def config():
     console_handler.setLevel(logging.INFO)
 
     # Create a file handler that appends to older logs and set its level
-    file_handler_append = logging.FileHandler(get_logger_relative_path(), mode='a')
+    file_handler_append = logging.FileHandler(get_persistent_logger_path(), mode='a')
     file_handler_append.setLevel(logging.INFO)
 
+    # Clear the per-run log, so the logger mode would be 'a' and volatility's logs could be saved to the file too
+    with open(get_per_run_logger_path(), 'w') as file:
+        pass
     # Create a file handler that overwrites older logs and set its level
-    file_handler_overwrite = logging.FileHandler(get_logger_overwrite_path(), mode='w')
+    file_handler_overwrite = logging.FileHandler(get_per_run_logger_path(), mode='a')
     file_handler_overwrite.setLevel(logging.INFO)
 
     # Create a formatter and set it for all handlers

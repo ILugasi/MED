@@ -3,7 +3,7 @@ import os
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
 from utils import get_base_path
-from configLogger import get_logger_overwrite_path
+from configLogger import get_per_run_logger_path
 
 
 class ScreenLogs(ScreenMgmt, metaclass=SingletonMeta):
@@ -14,7 +14,7 @@ class ScreenLogs(ScreenMgmt, metaclass=SingletonMeta):
 
     @staticmethod
     def get_logs_path():
-        return os.path.join(get_base_path(), get_logger_overwrite_path())
+        return os.path.join(get_base_path(), get_per_run_logger_path())
 
     def is_logs_available(self):
         return os.path.exists(self.get_logs_path())
