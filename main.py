@@ -1,3 +1,4 @@
+import os
 import sys
 
 from screens.screenAbout import ScreenAbout
@@ -16,6 +17,9 @@ from dotenv import load_dotenv
 
 import configLogger
 import logging
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(script_dir)
 
 configLogger.config()
 logger = logging.getLogger(__name__)
