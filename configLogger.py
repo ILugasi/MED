@@ -1,12 +1,17 @@
 import logging
+import os
+
+
+def get_relative_log_folder():
+    return 'log'
 
 
 def get_persistent_logger_path():
-    return 'log/persistent.log'
+    return os.path.join(get_relative_log_folder(), 'persistent.log')
 
 
 def get_per_run_logger_path():
-    return 'log/per_run.log'
+    return os.path.join(get_relative_log_folder(), 'per_run.log')
 
 
 def write_to_log_files(message: str):
@@ -16,7 +21,13 @@ def write_to_log_files(message: str):
         persistent_log.write(message)
 
 
+def create_log_folder():
+    os.makedirs(get_relative_log_folder(), exist_ok=True)
+
+
 def config():
+    create_log_folder()
+
     logger = logging.getLogger()
     # Create a logger object
     logger.setLevel(logging.INFO)  # Set the overall logging level for the logger
@@ -32,7 +43,7 @@ def config():
     # Clear the per-run log, so the logger mode would be 'a' and volatility's logs could be saved to the file too
     with open(get_per_run_logger_path(), 'w'):
         pass
-    
+
     # Create a file handler that overwrites older logs and set its level
     file_handler_overwrite = logging.FileHandler(get_per_run_logger_path(), mode='a')
     file_handler_overwrite.setLevel(logging.INFO)

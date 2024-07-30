@@ -24,6 +24,7 @@ os.chdir(script_dir)
 configLogger.config()
 logger = logging.getLogger(__name__)
 
+
 def main():
     logger.info("MED was launched")
     try:

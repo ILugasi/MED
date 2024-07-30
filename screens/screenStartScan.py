@@ -1,6 +1,6 @@
 import threading
 
-from configLogger import write_to_log_files
+from configLogger import write_to_log_files, get_relative_log_folder
 from consts import VOLATILITY_TOP_BANNER, VOLATILITY_LOG_PATH
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
@@ -49,7 +49,7 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
         base_path = get_base_path()
         python2_path = os.getenv("PYTHON2_PATH")
         out_folder_path = create_folder()
-        volatility_log_path = os.path.join(base_path, "log", VOLATILITY_LOG_PATH)
+        volatility_log_path = os.path.join(base_path, get_relative_log_folder(), VOLATILITY_LOG_PATH)
         script_path = os.path.join(base_path, "volatility", "vol.py")
         command = 'med'
         cmd = [
