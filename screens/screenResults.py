@@ -2,7 +2,6 @@ import os
 
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
-from analyzers import vt
 from utils import load_json_from_file
 
 
@@ -18,6 +17,9 @@ class ScreenResults(ScreenMgmt, metaclass=SingletonMeta):
         return self.current_results
 
     def build_options_params(self):
+        if not self.current_results:
+            return {}
+
         return {
             'Upload results to VT': self.upload_results_to_vt,
             'Peek': self.peek
@@ -30,3 +32,7 @@ class ScreenResults(ScreenMgmt, metaclass=SingletonMeta):
     def peek(self):
         self.passed_params["results"] = self.current_results
         ScreenMgmt.get_screen("peek", self.passed_params)
+
+    @staticmethod
+    def get_no_result_text():
+        return "No malicious activity detected"

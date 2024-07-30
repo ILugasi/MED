@@ -34,14 +34,19 @@ class ScreenMgmt:
         
     def build_data(self):
         data = ""
-        template = read_file_content(path.join("frameTemplates", self.frame_id, "data.txt"))
-        
+
         params = self.build_data_replace_params()
         if isinstance(params, dict):
             list_params = [params]
         else:
             list_params = params
 
+        if not list_params:
+            template = read_file_content(path.join("frameTemplates", "no_result.txt"))
+            no_result_params = {"no_result": self.get_no_result_text()}
+            return replace_template_elements(template, no_result_params)
+
+        template = read_file_content(path.join("frameTemplates", self.frame_id, "data.txt"))
         for single_replace_params in list_params:
             data += replace_template_elements(template, single_replace_params) + "\n"
 
@@ -104,6 +109,10 @@ class ScreenMgmt:
         else:
             choice = self.get_input_list_choice(self.build_list_options())
             self.run_list_option_func(choice)
+
+    @staticmethod
+    def get_no_result_text():
+        return ""
 
     @staticmethod
     def get_screen(frame_id: str, params: dict = None):
