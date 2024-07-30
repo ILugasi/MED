@@ -16,7 +16,6 @@ def write_to_log_files(message: str):
         persistent_log.write(message)
 
 
-
 def config():
     logger = logging.getLogger()
     # Create a logger object
@@ -31,8 +30,9 @@ def config():
     file_handler_append.setLevel(logging.INFO)
 
     # Clear the per-run log, so the logger mode would be 'a' and volatility's logs could be saved to the file too
-    with open(get_per_run_logger_path(), 'w') as file:
+    with open(get_per_run_logger_path(), 'w'):
         pass
+    
     # Create a file handler that overwrites older logs and set its level
     file_handler_overwrite = logging.FileHandler(get_per_run_logger_path(), mode='a')
     file_handler_overwrite.setLevel(logging.INFO)
