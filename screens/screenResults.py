@@ -1,5 +1,7 @@
 import os
 
+from colorama import Fore
+
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
 from utils import load_json_from_file
@@ -15,6 +17,12 @@ class ScreenResults(ScreenMgmt, metaclass=SingletonMeta):
         results_file = os.path.join(out_folder, "results.json")
         self.current_results = load_json_from_file(results_file)
         return self.current_results
+
+    def generate_sub_title(self):
+        if self.build_data_replace_params():
+            self.sub_title = f"{Fore.RED}Malicious activity detected{Fore.RESET}"
+        else:
+            self.sub_title = f"{Fore.GREEN}No malicious activity detected{Fore.RESET}"
 
     def build_options_params(self):
         if not self.current_results:
@@ -32,7 +40,3 @@ class ScreenResults(ScreenMgmt, metaclass=SingletonMeta):
     def peek(self):
         self.passed_params["results"] = self.current_results
         ScreenMgmt.get_screen("peek", self.passed_params)
-
-    @staticmethod
-    def get_no_result_text():
-        return "No malicious activity detected"

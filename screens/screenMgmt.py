@@ -1,5 +1,6 @@
 from utils import clear_screen, read_file_content, replace_template_elements, pad_text
 from os import path
+from colorama import Fore
 
 
 class ScreenMgmt:
@@ -22,10 +23,12 @@ class ScreenMgmt:
             'sub_title': self.build_sub_title(),
             'data': self.build_data(),
             'options': self.build_options(),
-            'option0': self.get_option_0_text()
+            'option0': f"{Fore.CYAN}{self.get_option_0_text()}{Fore.RESET}",
+            '0': f"{Fore.CYAN}0{Fore.RESET}"
             }
-    
+
     def build_sub_title(self):
+        self.generate_sub_title()
         if self.sub_title:
             template = read_file_content(path.join("frameTemplates", "sub_title.txt"))
             return replace_template_elements(template, {'sub_title': self.sub_title})
@@ -41,15 +44,11 @@ class ScreenMgmt:
         else:
             list_params = params
 
-        if not list_params:
-            template = read_file_content(path.join("frameTemplates", "no_result.txt"))
-            no_result_params = {"no_result": self.get_no_result_text()}
-            return replace_template_elements(template, no_result_params)
-
         template = read_file_content(path.join("frameTemplates", self.frame_id, "data.txt"))
         for single_replace_params in list_params:
             data += replace_template_elements(template, single_replace_params) + "\n"
 
+        data = self.recolor(data)
         return data
 
     def build_data_replace_params(self):
@@ -66,7 +65,7 @@ class ScreenMgmt:
         options_template = read_file_content(path.join("frameTemplates", "option.txt"))
         for option_description in list_options:
             index_description_replace_params = {
-                'index': str(i),
+                'index': f'{Fore.YELLOW}{str(i)}{Fore.RESET}',
                 'description': option_description
             }
             options_text += replace_template_elements(options_template, index_description_replace_params) + "\n"
@@ -98,9 +97,9 @@ class ScreenMgmt:
                 elif 1 <= choice <= amount_options:
                     return list_options[choice-1]
                 else:
-                    print(f"Error: The number is not in the options.")
+                    print(f"{Fore.RED}Error: The number is not in the options.{Fore.RESET}")
             except ValueError:
-                print("Error: Input is not a valid number. Please try again.")
+                print(f"{Fore.RED}Error: Input is not a valid number. Please try again.{Fore.RESET}")
 
     def get_input(self):
         if self.is_options_choice():
@@ -110,9 +109,12 @@ class ScreenMgmt:
             choice = self.get_input_list_choice(self.build_list_options())
             self.run_list_option_func(choice)
 
+    def generate_sub_title(self):
+        return self.sub_title
+
     @staticmethod
-    def get_no_result_text():
-        return ""
+    def recolor(text):
+        return text
 
     @staticmethod
     def get_screen(frame_id: str, params: dict = None):

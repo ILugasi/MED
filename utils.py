@@ -2,7 +2,7 @@ import json
 import os
 import datetime
 import uuid
-
+import re
 
 MINIMUM_LINE_LENGTH = 45
 
@@ -18,8 +18,19 @@ def read_file_content(file_path):
 def pad_line(line: str, size: int = MINIMUM_LINE_LENGTH, pad_chr: chr = " ", term_chr: chr = "|") -> str:
     if is_entirely_char(line) and line[0] != term_chr:
         return size * line[0] + "\n"
-    return line + (size - len(line)) * pad_chr + term_chr + "\n"
-    
+    return line + (size - text_length_without_colors(line)) * pad_chr + term_chr + "\n"
+
+
+def text_length_without_colors(colored_text):
+    # Define a regular expression pattern to match ANSI escape sequences
+    ansi_escape = re.compile(r'\x1b\[[0-9;]*m')
+
+    # Remove ANSI escape sequences from the string
+    plain_text = ansi_escape.sub('', colored_text)
+
+    # Calculate the length of the plain text
+    return len(plain_text)
+
 
 def pad_text(text: str, pad_chr: chr = ' ', term_chr: chr = '|'):
     new_text = ""

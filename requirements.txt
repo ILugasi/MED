@@ -6,3 +6,4 @@ pyelftools>=0.31
 unicorn>=2.0.1.post1
 windows>=0.1.1
 pytz>=2024.1
+colorama>=0.4.6

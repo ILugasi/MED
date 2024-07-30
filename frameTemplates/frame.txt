@@ -6,7 +6,7 @@
 <data>
 <options>
 |
-|  [0] <option0>
+|  [<0>] <option0>
 |
 |  [Type your choice and then press ENTER]
 |

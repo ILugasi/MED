@@ -1,5 +1,7 @@
 import os
 
+from colorama import Fore
+
 from analyzers import vt
 from screens.screenMgmt import ScreenMgmt
 from singletonMeta import SingletonMeta
@@ -41,3 +43,9 @@ class ScreenVT(ScreenMgmt, metaclass=SingletonMeta):
 
     def return_option(self):
         ScreenMgmt.get_screen("results", self.passed_params)
+
+    @staticmethod
+    def recolor(text):
+        text = text.replace("detects malicious", f"{Fore.RED}detects malicious{Fore.RESET}")
+        text = text.replace("no detection found", f"{Fore.GREEN}no detection found{Fore.RESET}")
+        return text
