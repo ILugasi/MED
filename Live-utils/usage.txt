@@ -1,0 +1,5 @@
+one admin cmd window:.
+	winpmem_mini_<architecture>.exe -l
+	
+other admin cmd window:
+	python vol.py -f winpmem://pmem windows.gargoyle
