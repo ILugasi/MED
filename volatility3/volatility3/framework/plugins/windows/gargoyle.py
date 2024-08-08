@@ -255,7 +255,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         unicornEng.mem_map(initialStackBase, 2 * 1024 * 1024)
         unicornEng.mem_write(initialStackBase + 0x100 + 0, b"\xbe\xba\xde\xc0")
 
-        routine_param = self.pas.read(apc.NormalContext.vol.offset, 4)
+        routine_param = self.pas.read(apc.NormalContext.vol.offset, apc.NormalContext._data_format.length)
 
         # We push the argument which the APC handler is given
         unicornEng.mem_write(initialStackBase + 0x100 + 4, routine_param)
@@ -357,8 +357,10 @@ class Gargoyle(interfaces.plugins.PluginInterface):
             )
             self.dbgMsg("Timer at {0}".format(hex(int(timer_offset))))
             
-            is_windows_vista = versions.is_vista_or_later and (not versions.is_windows_8_or_later) and (not versions.is_windows_7)
-            if is_64bit and (versions.is_xp_or_2003 or is_windows_vista):
+            is_windows_vista = versions.is_vista_or_later(self.context, symbol_table) and \
+                               (not versions.is_windows_8_or_later(self.context, symbol_table)) and \
+                               (not versions.is_windows_7(self.context, symbol_table))
+            if is_64bit and (versions.is_xp_or_2003(self.context, symbol_table) or is_windows_vista):
                 apc = kernel.object("_KAPC_WOW64", offset=timer.TimerApc.vol.offset, absolute=True)
             else:
                 apc = kernel.object("_KAPC", offset=timer.TimerApc.vol.offset, absolute=True)
