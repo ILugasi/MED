@@ -196,7 +196,10 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         exportNameLowercase = exportName.lower()
 
         for m in moduleList:
-            dllName = m.BaseDllName.String.lower()
+            try:
+                dllName = m.BaseDllName.String.lower()
+            except:
+                continue
             if dllName == moduleNameLowercase:
                 # Cache per-process (since a module may appear in a different process at a different base). For kernel modules
                 # there's no need to be per-process, so don't bother.
@@ -252,7 +255,6 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         # tries to jump to the newly-VirtualProtect'ed memory - a sure sign of Gargoyle-ness.
         VirtualProtect = self.findExport(process, "KERNEL32.DLL", "VirtualProtect")
         VirtualProtectEx = self.findExport(process, "KERNEL32.DLL", "VirtualProtectEx")
-
         # We'll need to set the process address space so that our badmem callback can use it later on.
         proc_layer_name = process.add_process_layer()
         self.pas = self.context.layers[proc_layer_name]
@@ -262,19 +264,33 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         hex(int(timer.vol.offset)), hex(int(apc.vol.offset)), hex(routine), hex(int(process.vol.offset)),
         utility.array_to_string(process.ImageFileName), hex(thread.StartAddress)))
 
-        unicornEng = Uc(UC_ARCH_X86, UC_MODE_32)
 
+        if (is_64bit):
+            unicornEng = Uc(UC_ARCH_X86, UC_MODE_64)
+        else:
+            unicornEng = Uc(UC_ARCH_X86, UC_MODE_32)
+        
+        if (is_64bit):
+            instruction_pointer= UC_X86_REG_RIP
+            stack_pointer = UC_X86_REG_RSP
+        else:
+            instruction_pointer= UC_X86_REG_EIP
+            stack_pointer = UC_X86_REG_ESP
+        SYSCALL_OPCODE = bytearray(b'\x0f\x05')
         # Populate the context from which to start emulating.
         # We use an arbitrary ESP, with a magic value to signify that the APC handler has returned.
         initialStackBase = 0x00000000f0000000
         unicornEng.mem_map(initialStackBase, 2 * 1024 * 1024)
         unicornEng.mem_write(initialStackBase + 0x100 + 0, b"\xbe\xba\xde\xc0")
 
-        routine_param = self.pas.read(apc.NormalContext.vol.offset, apc.NormalContext._data_format.length)
-
-        # We push the argument which the APC handler is given
-        unicornEng.mem_write(initialStackBase + 0x100 + 4, routine_param)
-        unicornEng.reg_write(UC_X86_REG_ESP, initialStackBase + 0x100)
+        # We push the argument which the APC handler is given        
+        if (is_64bit):
+            unicornEng.reg_write(UC_X86_REG_RCX, apc.NormalContext)
+        else:
+            routine_param = self.pas.read(apc.NormalContext.vol.offset, apc.NormalContext._data_format.length)
+            unicornEng.mem_write(initialStackBase + 0x100 + apc.NormalContext._data_format.length, routine_param)
+        
+        unicornEng.reg_write(stack_pointer, initialStackBase + 0x100)
 
         # Set up our handlers, which will map memory on-demand from the debuggee
         unicornEng.hook_add(UC_HOOK_MEM_READ_UNMAPPED, self.badmem)
@@ -286,15 +302,18 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         instrEmulated = 0
         nextIns = routine
         memoryRange = None
+        
+
 
         while instrEmulated < 10000:
             if self.config["verbose"]:
                 print("Before instruction %d at %s:" % (instrEmulated, hex(nextIns)))
                 print("CS:IP = %s:%s SS:SP = %s:%s" % (
-                    hex(unicornEng.reg_read(UC_X86_REG_CS)), hex(unicornEng.reg_read(UC_X86_REG_EIP)),
-                    hex(unicornEng.reg_read(UC_X86_REG_SS)), hex(unicornEng.reg_read(UC_X86_REG_ESP))))
+                hex(unicornEng.reg_read(UC_X86_REG_CS)), hex(unicornEng.reg_read(UC_X86_REG_EIP)),
+                hex(unicornEng.reg_read(UC_X86_REG_SS)), hex(unicornEng.reg_read(UC_X86_REG_ESP))))
 
             # Attempt to emulate a single instruction
+
             try:
                 unicornEng.emu_start(nextIns, nextIns + 0x10, count=1)
             except unicorn.UcError as e1:
@@ -302,7 +321,28 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 break
 
             # Great, we emulated an instruction. Move on to the next instruction.
-            nextIns = unicornEng.reg_read(UC_X86_REG_EIP)
+            nextIns = unicornEng.reg_read(instruction_pointer)
+            try:
+                if (is_64bit and 
+                    unicornEng.mem_read(nextIns,2) == SYSCALL_OPCODE and
+                    unicornEng.reg_read(UC_X86_REG_RAX) == 0x43):
+                    context = self.context.object(symbol_table + constants.BANG + "_CONTEXT", proc_layer_name, apc.NormalContext)
+                    nextIns = context.Rip
+                    unicornEng.reg_write(UC_X86_REG_RAX, context.Rax)
+                    unicornEng.reg_write(UC_X86_REG_RBX, context.Rbx)
+                    unicornEng.reg_write(UC_X86_REG_RCX, context.Rcx)
+                    unicornEng.reg_write(UC_X86_REG_RDX, context.Rdx)
+                    unicornEng.reg_write(UC_X86_REG_R8, context.R8)
+                    unicornEng.reg_write(UC_X86_REG_R9, context.R9)
+                    unicornEng.reg_write(UC_X86_REG_R10, context.R10)
+                    unicornEng.reg_write(UC_X86_REG_R11, context.R11)
+                    unicornEng.reg_write(UC_X86_REG_R12, context.R12)
+                    unicornEng.reg_write(UC_X86_REG_R13, context.R13)
+                    unicornEng.reg_write(UC_X86_REG_R14, context.R14)
+                    unicornEng.reg_write(UC_X86_REG_R15, context.R15)
+            except unicorn.UcError as e1:
+                self.dbgMsg(f"read invalid: {e1}")
+        
             instrEmulated = instrEmulated + 1
 
             # If we're now at our magic address, then our APC has completed executing entirely. That's all, folks.
@@ -310,7 +350,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 break
 
             # Now we can check for some suspicious circumstance.
-            esp = unicornEng.reg_read(UC_X86_REG_ESP)
+            esp = unicornEng.reg_read(stack_pointer)
             if esp == int(apc.NormalContext):
                 result.didROP = "True"
                 self.dbgMsg("APC has performed stack pivot; new stack is its context pointer")
@@ -320,6 +360,8 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                     break
             if VirtualProtectEx != None:
                 if nextIns == VirtualProtectEx:
+                    if(is_64bit):
+                            result.probablePayload = unicornEng.reg_read(UC_X86_REG_RCX)
                     result.didAdjustPerms = "True"
 
                     # Read the arguments to VirtualProtect, and the return address, from the stack
@@ -331,11 +373,14 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                         memoryRange))
                     # Set the return address to whatever VirtualProtect would've returned to
                     nextIns = returnAddress
-                    unicornEng.reg_write(UC_X86_REG_EIP, returnAddress)
+                    unicornEng.reg_write(instruction_pointer, returnAddress)
                     # Pop five args plus the return address off the (32bit) stack
-                    unicornEng.reg_write(UC_X86_REG_ESP, esp + (6 * 4))
+
+                    unicornEng.reg_write(stack_pointer, esp + (6*4))
                 if VirtualProtect != None:
                     if nextIns == VirtualProtect:
+                        if(is_64bit):
+                            result.probablePayload = unicornEng.reg_read(UC_X86_REG_RCX)
                         result.didAdjustPerms = "True"
 
                         # Read the arguments to VirtualProtect, and the return address, from the stack
@@ -347,15 +392,18 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                             memoryRange))
                         # Set the return address to whatever VirtualProtect would've returned to
                         nextIns = returnAddress
-                        unicornEng.reg_write(UC_X86_REG_EIP, returnAddress)
+                        unicornEng.reg_write(instruction_pointer, returnAddress)
                         # Pop four args plus the return address off the (32bit) stack
-                        unicornEng.reg_write(UC_X86_REG_ESP, esp + (5 * 4))
+                        unicornEng.reg_write(stack_pointer, esp + (5 * 4))
                 if nextIns in result.adjustedAddresses:
                     result.didJumpToAdjusted = "True"
+
                     result.probablePayload = nextIns
                     self.dbgMsg("Timer routine is jumping to newly-executable code at %s!" % hex(memoryRange))
+
                     break
-        yield result
+        if result.probablePayload != 0:
+            yield result
 
     def _generator(self) -> Iterator[timerResult]:
         self.exportCache = {}
