@@ -47,20 +47,20 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
 
     def scan_dump_file(self, dump_file_path: str, profile):
         base_path = get_base_path()
-        python2_path = os.getenv("PYTHON2_PATH")
+        python_path = os.getenv("PYTHON_PATH")
         out_folder_path = create_folder()
         volatility_log_path = os.path.join(base_path, get_relative_log_folder(), VOLATILITY_LOG_PATH)
-        script_path = os.path.join(base_path, "volatility", "vol.py")
-        command = 'med'
+        script_path = os.path.join(base_path, "volatility3", "vol.py")
+        command = 'windows.med'
         cmd = [
-            python2_path,
+            python_path,
             script_path,
-            command,
+            '-r=json',
+            '-o', out_folder_path,
             '-f', dump_file_path,
-            '--profile=' + profile,
-            '--output=json',
-            '-D', out_folder_path,
-            '-Q', volatility_log_path
+            command,
+            #'--profile=' + profile,
+            '--log-file-path', volatility_log_path
         ]
         logger.info(f"Starting a MED dump scan on file: '{dump_file_path}' with profile '{profile}'")
 
@@ -77,7 +77,8 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
         stop_event.set()
         tail_thread.join()
 
-        if stderr.strip() != VOLATILITY_TOP_BANNER:
+        #TODO - change to vol3 format
+        if stderr.strip() == VOLATILITY_TOP_BANNER:
             logger.error(f"MED dump scan resulted error\n"
                          f"Press ENTER to return to the main menu:\n"
                          f"Error: {stderr}")

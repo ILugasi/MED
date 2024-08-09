@@ -29,6 +29,15 @@ from unicorn import *
 from unicorn.x86_const import *
 
 vollog = logging.getLogger(__name__)
+FORMAT_LIST = [
+    ("PID", int),
+    ("Process", str),
+    ("Handler", format_hints.Hex),
+    ("Adjusted page permissions", str),
+    ("Branched to code after altering page permission", str),
+    ("Probable payload", format_hints.Hex),
+    ("Prolog", interfaces.renderers.Disassembly),
+]
 
 class timerResult():
     def __init__(self, context, process, thread, timerRoutine, is_64bit):
@@ -41,7 +50,7 @@ class timerResult():
         self.adjustedAddresses = []
         self.probablePayload = 0
         self.prolog = "Unknown"
-        
+
         proc_layer_name = process.add_process_layer()
         proc_layer = context.layers[proc_layer_name]
         instrStream = proc_layer.read(timerRoutine, 5)
@@ -53,9 +62,11 @@ class timerResult():
             architecture = "intel"
 
         if not instrStream:
-            print("Process %s '%s': Can't read instruction stream at %s; perhaps it is paged out" % (hex(int(process.obj_offset)), process.ImageFileName, hex(timerRoutine)))
+            print("Process %s '%s': Can't read instruction stream at %s; perhaps it is paged out" % (
+            hex(int(process.obj_offset)), process.ImageFileName, hex(timerRoutine)))
         else:
             self.prolog = interfaces.renderers.Disassembly(instrStream, timerRoutine, architecture)
+
 
 class Gargoyle(interfaces.plugins.PluginInterface):
     """Detect gargoyle evasion technique payload in memory"""
@@ -97,7 +108,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
     def dbgMsg(self, *args):
         if self.config["verbose"]:
             print(" ".join(map(str, args)))
-    
+
     # This is called when Unicorn needs to access some memory that isn't mapped yet.
     # We simply map the memory, copy in its contents from the debuggee, and return.
     # Our main loop will retry. We signal errors by setting self.emulationFaulted.
@@ -107,18 +118,18 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         if self.pas == None:
             self.dbgMsg("Unable to handle memory mapping with no active process")
             raise MemoryError
-        
+
         # Unicorn will only successfully map page-aligned addresses, so map the whole page.
         pageSize = 0x1000
-        pageBase = address & (~(pageSize-1))
+        pageBase = address & (~(pageSize - 1))
         uc.mem_map(pageBase, pageSize)
 
         # Read from the debuggee..
         pageCts = self.pas.read(pageBase, pageSize)
         if pageCts == None:
-            self.dbgMsg ("Unable to read %s bytes at %s" % (hex(pageSize), hex(pageBase)))
+            self.dbgMsg("Unable to read %s bytes at %s" % (hex(pageSize), hex(pageBase)))
             raise MemoryError
-        
+
         # And write to Unicorn.
         uc.mem_write(pageBase, pageCts)
         self.dbgMsg("Mapped %s bytes at base %s" % (hex(pageSize), hex(pageBase)))
@@ -131,21 +142,21 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         except Exception as e:
             self.emulationFaulted = e
             raise
-    
+
     def isKernelSpace(self, DllBase):
         kernel = self.context.modules[self.config["kernel"]]
         symbol_table = kernel.symbol_table_name
 
         is_64bit = symbols.symbol_table_is_64bit(self.context, symbol_table)
-        
+
         if is_64bit:
             return DllBase < 0x8000000000000000
         else:
             # TODO: support 3GB address mode, if it's worth it
             return DllBase < 0x80000000
-    
+
     def _get_pefile_obj(
-        self, pe_table_name: str, layer_name: str, base_address: int, dllName: str
+            self, pe_table_name: str, layer_name: str, base_address: int, dllName: str
     ) -> pefile.PE:
         """
         Attempts to pefile object from the bytes of the PE file
@@ -179,7 +190,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
             pe_ret = None
 
         return pe_ret
-    
+
     def findExportInModuleList(self, process, moduleList, moduleName, exportName):
         moduleNameLowercase = moduleName.lower()
         exportNameLowercase = exportName.lower()
@@ -195,7 +206,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                     cacheKey = "%s!%s %s" % (moduleNameLowercase, exportNameLowercase, hex(m.DllBase))
                 if cacheKey in self.exportCache.keys():
                     return self.exportCache[cacheKey]
-                
+
                 pe_table_name = intermed.IntermediateSymbolTable.create(
                     self.context, self.config_path, "windows", "pe", class_types=pe.class_types
                 )
@@ -213,31 +224,33 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                     exported_function_name = export.name.decode('utf-8').lower()
                     if exported_function_name == exportNameLowercase:
                         toReturn = m.DllBase + export.address
-                        self.dbgMsg("Found %s ! %s at %s (%s)" % (dllName, exported_function_name, hex(toReturn), hex(m.DllBase)))
+                        self.dbgMsg("Found %s ! %s at %s (%s)" % (
+                        dllName, exported_function_name, hex(toReturn), hex(m.DllBase)))
                         self.exportCache[cacheKey] = toReturn
                         return toReturn
 
         return None
-    
+
     def findExport(self, process, moduleName, exportName):
-         if process.get_is_wow64():
+        if process.get_is_wow64():
             # WoW64 processes are treated specially, since we must get 32bit modules via the 32bit PEB.
             print("Wow64 processes are not supported right now")
             return None
-         else:
+        else:
             # Not a WoW64 process, so just get the modules normally.
             modList = process.mem_order_modules()
 
-         exp = self.findExportInModuleList(process, modList, moduleName, exportName)
-         if exp == None:
-             print("Unable to find export %s!%s in process %s" % (moduleName, exportName, utility.array_to_string(process.ImageFileName)))
-         return exp
-    
+        exp = self.findExportInModuleList(process, modList, moduleName, exportName)
+        if exp == None:
+            print("Unable to find export %s!%s in process %s" % (
+            moduleName, exportName, utility.array_to_string(process.ImageFileName)))
+        return exp
+
     def examine(self, process, thread, routine, apc, timer, is_64bit) -> Iterator[timerResult]:
         # We will now emulate through the instruction stream, starting at the APC handler, and see if anything fishy
         # goes on. Specifically, we will see if the APC calls VirtualProtect. If it does, we will see if it also
         # tries to jump to the newly-VirtualProtect'ed memory - a sure sign of Gargoyle-ness.
-        VirtualProtect   = self.findExport(process, "KERNEL32.DLL", "VirtualProtect")
+        VirtualProtect = self.findExport(process, "KERNEL32.DLL", "VirtualProtect")
         VirtualProtectEx = self.findExport(process, "KERNEL32.DLL", "VirtualProtectEx")
 
         # We'll need to set the process address space so that our badmem callback can use it later on.
@@ -245,10 +258,12 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         self.pas = self.context.layers[proc_layer_name]
 
         result = timerResult(self.context, process, thread, routine, is_64bit)
-        self.dbgMsg("Timer %s APC %s routine %s in process %s ('%s') thread %s" % (hex(int(timer.vol.offset)), hex(int(apc.vol.offset)), hex(routine), hex(int(process.vol.offset)), utility.array_to_string(process.ImageFileName), hex(thread.StartAddress)))
+        self.dbgMsg("Timer %s APC %s routine %s in process %s ('%s') thread %s" % (
+        hex(int(timer.vol.offset)), hex(int(apc.vol.offset)), hex(routine), hex(int(process.vol.offset)),
+        utility.array_to_string(process.ImageFileName), hex(thread.StartAddress)))
 
         unicornEng = Uc(UC_ARCH_X86, UC_MODE_32)
-        
+
         # Populate the context from which to start emulating.
         # We use an arbitrary ESP, with a magic value to signify that the APC handler has returned.
         initialStackBase = 0x00000000f0000000
@@ -278,10 +293,10 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 print("CS:IP = %s:%s SS:SP = %s:%s" % (
                     hex(unicornEng.reg_read(UC_X86_REG_CS)), hex(unicornEng.reg_read(UC_X86_REG_EIP)),
                     hex(unicornEng.reg_read(UC_X86_REG_SS)), hex(unicornEng.reg_read(UC_X86_REG_ESP))))
-            
+
             # Attempt to emulate a single instruction
             try:
-                unicornEng.emu_start(nextIns, nextIns + 0x10, count = 1)
+                unicornEng.emu_start(nextIns, nextIns + 0x10, count=1)
             except unicorn.UcError as e1:
                 self.dbgMsg(f"Unicorn (or badmem function) throw an exception: {e1}")
                 break
@@ -312,12 +327,13 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                     memoryRange = struct.unpack("I", unicornEng.mem_read(esp + 8, 4))[0]
 
                     result.adjustedAddresses.append(memoryRange)
-                    self.dbgMsg("VirtualProtectEx: Timer routine is adjusting memory permissions of range %s" % hex(memoryRange))
+                    self.dbgMsg("VirtualProtectEx: Timer routine is adjusting memory permissions of range %s" % hex(
+                        memoryRange))
                     # Set the return address to whatever VirtualProtect would've returned to
                     nextIns = returnAddress
                     unicornEng.reg_write(UC_X86_REG_EIP, returnAddress)
                     # Pop five args plus the return address off the (32bit) stack
-                    unicornEng.reg_write(UC_X86_REG_ESP, esp + (6*4))
+                    unicornEng.reg_write(UC_X86_REG_ESP, esp + (6 * 4))
                 if VirtualProtect != None:
                     if nextIns == VirtualProtect:
                         result.didAdjustPerms = "True"
@@ -327,7 +343,8 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                         memoryRange = struct.unpack("I", unicornEng.mem_read(esp + 4, 4))[0]
 
                         result.adjustedAddresses.append(memoryRange)
-                        self.dbgMsg("VirtualProtect: Timer routine is adjusting memory permissions of range %s" % hex(memoryRange))
+                        self.dbgMsg("VirtualProtect: Timer routine is adjusting memory permissions of range %s" % hex(
+                            memoryRange))
                         # Set the return address to whatever VirtualProtect would've returned to
                         nextIns = returnAddress
                         unicornEng.reg_write(UC_X86_REG_EIP, returnAddress)
@@ -336,7 +353,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 if nextIns in result.adjustedAddresses:
                     result.didJumpToAdjusted = "True"
                     result.probablePayload = nextIns
-                    self.dbgMsg( "Timer routine is jumping to newly-executable code at %s!" % hex(memoryRange))
+                    self.dbgMsg("Timer routine is jumping to newly-executable code at %s!" % hex(memoryRange))
                     break
         yield result
 
@@ -356,7 +373,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 absolute=True,
             )
             self.dbgMsg("Timer at {0}".format(hex(int(timer_offset))))
-            
+
             is_windows_vista = versions.is_vista_or_later(self.context, symbol_table) and \
                                (not versions.is_windows_8_or_later(self.context, symbol_table)) and \
                                (not versions.is_windows_7(self.context, symbol_table))
@@ -364,7 +381,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 apc = kernel.object("_KAPC_WOW64", offset=timer.TimerApc.vol.offset, absolute=True)
             else:
                 apc = kernel.object("_KAPC", offset=timer.TimerApc.vol.offset, absolute=True)
-            
+
             routine = int(apc.NormalRoutine)
             thread = kernel.object("_ETHREAD", offset=int(apc.Thread), absolute=True)
             if (not thread.is_valid()) or (routine == 0):
@@ -376,7 +393,8 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 # This usually happens when a timer is not pointing to a valid thread. I'm not sure why this happens -
                 # I guess there's some flag in the timer which states that it isn't valid, or the timer/timer list is
                 # # being manipulated when we dump.
-                self.dbgMsg('Timer %s : warning: Thread ID %s has no owning process, skipping' % (hex(int(timer_offset)), hex(int(thread.Cid.UniqueThread))))
+                self.dbgMsg('Timer %s : warning: Thread ID %s has no owning process, skipping' % (
+                hex(int(timer_offset)), hex(int(thread.Cid.UniqueThread))))
                 continue
 
             # If this is a WoW64 APC - ie, an APC queued by a 32-bit thread on a 64-bit windows install - then we must
@@ -387,11 +405,13 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 routine32bit = (-(routine >> 2)) & 0xffffffff
                 self.dbgMsg("WoW64-style APC routine decoded %s to %s" % (hex(routine), hex(routine32bit)))
                 routine = routine32bit
-            
+
             for result in self.examine(process, thread, routine, apc, timer, is_64bit):
+                # make sure this matches FORMAT_LIST
                 yield (
                     0,
                     (
+                        result.process.UniqueProcessId,
                         result.process.ImageFileName.cast(
                             "string",
                             max_length=result.process.ImageFileName.vol.count,
@@ -407,13 +427,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
 
     def run(self):
         return renderers.TreeGrid(
-            [
-                ("Process", str),
-                ("Handler", format_hints.Hex),
-                ("Adjusted page permissions", str),
-                ("Branched to code after altering page permission", str),
-                ("Probable payload", format_hints.Hex),
-                ("Prolog", interfaces.renderers.Disassembly),
-            ],
+            FORMAT_LIST,
             self._generator(),
         )
+
