@@ -249,7 +249,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
             moduleName, exportName, utility.array_to_string(process.ImageFileName)))
         return exp
 
-    def examine(self, process, thread, routine, apc, timer, is_64bit) -> Iterator[timerResult]:
+    def examine(self, process, thread, routine, apc, timer, symbol_table, is_64bit) -> Iterator[timerResult]:
         # We will now emulate through the instruction stream, starting at the APC handler, and see if anything fishy
         # goes on. Specifically, we will see if the APC calls VirtualProtect. If it does, we will see if it also
         # tries to jump to the newly-VirtualProtect'ed memory - a sure sign of Gargoyle-ness.
@@ -454,7 +454,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 self.dbgMsg("WoW64-style APC routine decoded %s to %s" % (hex(routine), hex(routine32bit)))
                 routine = routine32bit
 
-            for result in self.examine(process, thread, routine, apc, timer, is_64bit):
+            for result in self.examine(process, thread, routine, apc, timer,symbol_table, is_64bit):
                 # make sure this matches FORMAT_LIST
                 yield (
                     0,
