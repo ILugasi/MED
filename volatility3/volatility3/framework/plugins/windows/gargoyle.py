@@ -236,13 +236,12 @@ class Gargoyle(interfaces.plugins.PluginInterface):
              print("Unable to find export %s!%s in process %s" % (moduleName, exportName, utility.array_to_string(process.ImageFileName)))
          return exp
     
-    def examine(self, process, thread, routine, apc, timer, is_64bit) -> Iterator[timerResult]:
+    def examine(self, process, thread, routine, apc, timer, symbol_table, is_64bit) -> Iterator[timerResult]:
         # We will now emulate through the instruction stream, starting at the APC handler, and see if anything fishy
         # goes on. Specifically, we will see if the APC calls VirtualProtect. If it does, we will see if it also
         # tries to jump to the newly-VirtualProtect'ed memory - a sure sign of Gargoyle-ness.
         VirtualProtect   = self.findExport(process, "KERNEL32.DLL", "VirtualProtect")
         VirtualProtectEx = self.findExport(process, "KERNEL32.DLL", "VirtualProtectEx")
-
         # We'll need to set the process address space so that our badmem callback can use it later on.
         proc_layer_name = process.add_process_layer()
         self.pas = self.context.layers[proc_layer_name]
@@ -261,7 +260,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         else:
             instruction_pointer= UC_X86_REG_EIP
             stack_pointer = UC_X86_REG_ESP
-
+        SYSCALL_OPCODE = bytearray(b'\x0f\x05')
         # Populate the context from which to start emulating.
         # We use an arbitrary ESP, with a magic value to signify that the APC handler has returned.
         initialStackBase = 0x00000000f0000000
@@ -287,6 +286,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         instrEmulated = 0
         nextIns = routine
         memoryRange = None
+        
 
 
         while instrEmulated < 10000:
@@ -296,7 +296,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                     hex(unicornEng.reg_read(UC_X86_REG_CS)), hex(unicornEng.reg_read(instruction_pointer)),
                     hex(unicornEng.reg_read(UC_X86_REG_SS)), hex(unicornEng.reg_read(stack_pointer))))
             
-            # Attempt to emulate a single instruction
+            # Attempt to emulate a single instruction            
             try:
                 unicornEng.emu_start(nextIns, nextIns + 0x10, count = 1)
             except unicorn.UcError as e1:
@@ -305,6 +305,27 @@ class Gargoyle(interfaces.plugins.PluginInterface):
 
             # Great, we emulated an instruction. Move on to the next instruction.
             nextIns = unicornEng.reg_read(instruction_pointer)
+            try:
+                if (is_64bit and 
+                    unicornEng.mem_read(nextIns,2) == SYSCALL_OPCODE and
+                    unicornEng.reg_read(UC_X86_REG_RAX) == 0x43):
+                    context = self.context.object(symbol_table + constants.BANG + "_CONTEXT", proc_layer_name, apc.NormalContext)
+                    nextIns = context.Rip
+                    unicornEng.reg_write(UC_X86_REG_RAX, context.Rax)
+                    unicornEng.reg_write(UC_X86_REG_RBX, context.Rbx)
+                    unicornEng.reg_write(UC_X86_REG_RCX, context.Rcx)
+                    unicornEng.reg_write(UC_X86_REG_RDX, context.Rdx)
+                    unicornEng.reg_write(UC_X86_REG_R8, context.R8)
+                    unicornEng.reg_write(UC_X86_REG_R9, context.R9)
+                    unicornEng.reg_write(UC_X86_REG_R10, context.R10)
+                    unicornEng.reg_write(UC_X86_REG_R11, context.R11)
+                    unicornEng.reg_write(UC_X86_REG_R12, context.R12)
+                    unicornEng.reg_write(UC_X86_REG_R13, context.R13)
+                    unicornEng.reg_write(UC_X86_REG_R14, context.R14)
+                    unicornEng.reg_write(UC_X86_REG_R15, context.R15)
+            except unicorn.UcError as e1:
+                self.dbgMsg(f"read invalid: {e1}")
+        
             instrEmulated = instrEmulated + 1
 
             # If we're now at our magic address, then our APC has completed executing entirely. That's all, folks.
@@ -322,6 +343,8 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                     break
             if VirtualProtectEx != None:
                 if nextIns == VirtualProtectEx:
+                    if(is_64bit):
+                            result.probablePayload = unicornEng.reg_read(UC_X86_REG_RCX)
                     result.didAdjustPerms = "True"
 
                     # Read the arguments to VirtualProtect, and the return address, from the stack
@@ -337,6 +360,8 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                     unicornEng.reg_write(stack_pointer, esp + (6*4))
                 if VirtualProtect != None:
                     if nextIns == VirtualProtect:
+                        if(is_64bit):
+                            result.probablePayload = unicornEng.reg_read(UC_X86_REG_RCX)
                         result.didAdjustPerms = "True"
 
                         # Read the arguments to VirtualProtect, and the return address, from the stack
@@ -352,10 +377,12 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                         unicornEng.reg_write(stack_pointer, esp + (5 * 4))
                 if nextIns in result.adjustedAddresses:
                     result.didJumpToAdjusted = "True"
-                    result.probablePayload = nextIns
+                    if (not is_64bit):
+                        result.probablePayload = nextIns
                     self.dbgMsg( "Timer routine is jumping to newly-executable code at %s!" % hex(memoryRange))
                     break
-        yield result
+        if result.probablePayload != 0:
+            yield result
 
     def _generator(self) -> Iterator[timerResult]:
         self.exportCache = {}
@@ -405,7 +432,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 self.dbgMsg("WoW64-style APC routine decoded %s to %s" % (hex(routine), hex(routine32bit)))
                 routine = routine32bit
             
-            for result in self.examine(process, thread, routine, apc, timer, is_64bit):
+            for result in self.examine(process, thread, routine, apc, timer, symbol_table, is_64bit):
                 yield (
                     0,
                     (
