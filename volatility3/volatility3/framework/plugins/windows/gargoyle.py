@@ -185,7 +185,10 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         exportNameLowercase = exportName.lower()
 
         for m in moduleList:
-            dllName = m.BaseDllName.String.lower()
+            try:
+                dllName = m.BaseDllName.String.lower()
+            except:
+                continue
             if dllName == moduleNameLowercase:
                 # Cache per-process (since a module may appear in a different process at a different base). For kernel modules
                 # there's no need to be per-process, so don't bother.
@@ -247,19 +250,32 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         result = timerResult(self.context, process, thread, routine, is_64bit)
         self.dbgMsg("Timer %s APC %s routine %s in process %s ('%s') thread %s" % (hex(int(timer.vol.offset)), hex(int(apc.vol.offset)), hex(routine), hex(int(process.vol.offset)), utility.array_to_string(process.ImageFileName), hex(thread.StartAddress)))
 
-        unicornEng = Uc(UC_ARCH_X86, UC_MODE_32)
+        if (is_64bit):
+            unicornEng = Uc(UC_ARCH_X86, UC_MODE_64)
+        else:
+            unicornEng = Uc(UC_ARCH_X86, UC_MODE_32)
         
+        if (is_64bit):
+            instruction_pointer= UC_X86_REG_RIP
+            stack_pointer = UC_X86_REG_RSP
+        else:
+            instruction_pointer= UC_X86_REG_EIP
+            stack_pointer = UC_X86_REG_ESP
+
         # Populate the context from which to start emulating.
         # We use an arbitrary ESP, with a magic value to signify that the APC handler has returned.
         initialStackBase = 0x00000000f0000000
         unicornEng.mem_map(initialStackBase, 2 * 1024 * 1024)
         unicornEng.mem_write(initialStackBase + 0x100 + 0, b"\xbe\xba\xde\xc0")
 
-        routine_param = self.pas.read(apc.NormalContext.vol.offset, apc.NormalContext._data_format.length)
-
-        # We push the argument which the APC handler is given
-        unicornEng.mem_write(initialStackBase + 0x100 + 4, routine_param)
-        unicornEng.reg_write(UC_X86_REG_ESP, initialStackBase + 0x100)
+        # We push the argument which the APC handler is given        
+        if (is_64bit):
+            unicornEng.reg_write(UC_X86_REG_RCX, apc.NormalContext)
+        else:
+            routine_param = self.pas.read(apc.NormalContext.vol.offset, apc.NormalContext._data_format.length)
+            unicornEng.mem_write(initialStackBase + 0x100 + apc.NormalContext._data_format.length, routine_param)
+        
+        unicornEng.reg_write(stack_pointer, initialStackBase + 0x100)
 
         # Set up our handlers, which will map memory on-demand from the debuggee
         unicornEng.hook_add(UC_HOOK_MEM_READ_UNMAPPED, self.badmem)
@@ -272,12 +288,13 @@ class Gargoyle(interfaces.plugins.PluginInterface):
         nextIns = routine
         memoryRange = None
 
+
         while instrEmulated < 10000:
             if self.config["verbose"]:
                 print("Before instruction %d at %s:" % (instrEmulated, hex(nextIns)))
                 print("CS:IP = %s:%s SS:SP = %s:%s" % (
-                    hex(unicornEng.reg_read(UC_X86_REG_CS)), hex(unicornEng.reg_read(UC_X86_REG_EIP)),
-                    hex(unicornEng.reg_read(UC_X86_REG_SS)), hex(unicornEng.reg_read(UC_X86_REG_ESP))))
+                    hex(unicornEng.reg_read(UC_X86_REG_CS)), hex(unicornEng.reg_read(instruction_pointer)),
+                    hex(unicornEng.reg_read(UC_X86_REG_SS)), hex(unicornEng.reg_read(stack_pointer))))
             
             # Attempt to emulate a single instruction
             try:
@@ -287,7 +304,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 break
 
             # Great, we emulated an instruction. Move on to the next instruction.
-            nextIns = unicornEng.reg_read(UC_X86_REG_EIP)
+            nextIns = unicornEng.reg_read(instruction_pointer)
             instrEmulated = instrEmulated + 1
 
             # If we're now at our magic address, then our APC has completed executing entirely. That's all, folks.
@@ -295,7 +312,7 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                 break
 
             # Now we can check for some suspicious circumstance.
-            esp = unicornEng.reg_read(UC_X86_REG_ESP)
+            esp = unicornEng.reg_read(stack_pointer)
             if esp == int(apc.NormalContext):
                 result.didROP = "True"
                 self.dbgMsg("APC has performed stack pivot; new stack is its context pointer")
@@ -315,9 +332,9 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                     self.dbgMsg("VirtualProtectEx: Timer routine is adjusting memory permissions of range %s" % hex(memoryRange))
                     # Set the return address to whatever VirtualProtect would've returned to
                     nextIns = returnAddress
-                    unicornEng.reg_write(UC_X86_REG_EIP, returnAddress)
+                    unicornEng.reg_write(instruction_pointer, returnAddress)
                     # Pop five args plus the return address off the (32bit) stack
-                    unicornEng.reg_write(UC_X86_REG_ESP, esp + (6*4))
+                    unicornEng.reg_write(stack_pointer, esp + (6*4))
                 if VirtualProtect != None:
                     if nextIns == VirtualProtect:
                         result.didAdjustPerms = "True"
@@ -330,9 +347,9 @@ class Gargoyle(interfaces.plugins.PluginInterface):
                         self.dbgMsg("VirtualProtect: Timer routine is adjusting memory permissions of range %s" % hex(memoryRange))
                         # Set the return address to whatever VirtualProtect would've returned to
                         nextIns = returnAddress
-                        unicornEng.reg_write(UC_X86_REG_EIP, returnAddress)
+                        unicornEng.reg_write(instruction_pointer, returnAddress)
                         # Pop four args plus the return address off the (32bit) stack
-                        unicornEng.reg_write(UC_X86_REG_ESP, esp + (5 * 4))
+                        unicornEng.reg_write(stack_pointer, esp + (5 * 4))
                 if nextIns in result.adjustedAddresses:
                     result.didJumpToAdjusted = "True"
                     result.probablePayload = nextIns
