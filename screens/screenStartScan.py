@@ -71,19 +71,27 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
         tail_thread.start()
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        stdout, stderr = process.communicate()
+        while True:
+            output = process.stderr.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                clean_output = output.strip()
+                if clean_output:
+                    logger.info(clean_output)
+
+        return_code = process.poll()
+
+        stdout = process.stdout.read()
 
         stop_event.set()
         tail_thread.join()
 
-        #TODO - change to vol3 format
-        if stderr.strip() == VOLATILITY_TOP_BANNER:
+        if return_code != 0:
             logger.error(f"MED dump scan resulted error\n"
-                         f"Press ENTER to return to the main menu:\n"
-                         f"Error: {stderr}")
+                         f"Press ENTER to return to the main menu:\n")
             input()
             return ScreenMgmt.get_screen("main")
-
         else:
             formatted_results = format_results(json.loads(stdout))
             logger.info(f"MED dump scan finished successfully, saving results to {out_folder_path}")
