@@ -29,21 +29,6 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
         dump_file_path = input("Please enter dump file path: ").strip().strip('"').strip("'")
         self.scan_dump_file(dump_file_path)
 
-    @staticmethod
-    def tail(file_path, stop_event):
-        with open(file_path, 'r') as volatility_log_file:
-            # Move the pointer to the end of the file
-            volatility_log_file.seek(0, 2)
-
-            while not stop_event.is_set():
-                line = volatility_log_file.readline()
-                if not line:
-                    time.sleep(0.1)  # Sleep briefly
-                    continue
-
-                print(line, end='')
-                write_to_log_files(line)
-
     def scan_dump_file(self, dump_file_path: str):
         base_path = get_base_path()
         python_path = os.getenv("PYTHON_PATH")
@@ -58,17 +43,12 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
             '-o', out_folder_path,
             '-f', dump_file_path,
             command,
-            '--dump',
-            '--log-file-path', volatility_log_path
+            '--dump'
         ]
         logger.info(f"Starting a MED dump scan on file: '{dump_file_path}'")
 
         # Event to stop the tailing thread
         stop_event = threading.Event()
-
-        # Start the tailing thread
-        tail_thread = threading.Thread(target=self.tail, args=(volatility_log_path, stop_event))
-        tail_thread.start()
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         while True:
@@ -85,7 +65,6 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
         stdout = process.stdout.read()
 
         stop_event.set()
-        tail_thread.join()
 
         if return_code != 0:
             logger.error(f"MED dump scan resulted error\n"
