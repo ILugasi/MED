@@ -27,8 +27,7 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
     
     def scan_dump_file_option(self):
         dump_file_path = input("Please enter dump file path: ").strip().strip('"').strip("'")
-        profile = input("Please enter dump file profile: ").strip().strip('"').strip("'")
-        self.scan_dump_file(dump_file_path, profile)
+        self.scan_dump_file(dump_file_path)
 
     @staticmethod
     def tail(file_path, stop_event):
@@ -45,7 +44,7 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
                 print(line, end='')
                 write_to_log_files(line)
 
-    def scan_dump_file(self, dump_file_path: str, profile):
+    def scan_dump_file(self, dump_file_path: str):
         base_path = get_base_path()
         python_path = os.getenv("PYTHON_PATH")
         out_folder_path = create_folder()
@@ -59,10 +58,10 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
             '-o', out_folder_path,
             '-f', dump_file_path,
             command,
-            #'--profile=' + profile,
+            '--dump',
             '--log-file-path', volatility_log_path
         ]
-        logger.info(f"Starting a MED dump scan on file: '{dump_file_path}' with profile '{profile}'")
+        logger.info(f"Starting a MED dump scan on file: '{dump_file_path}'")
 
         # Event to stop the tailing thread
         stop_event = threading.Event()

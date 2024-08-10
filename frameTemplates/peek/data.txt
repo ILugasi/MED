@@ -1,5 +1,5 @@
 |
-|   Process: <Process>, Pid: <Pid>, Address: <Address>
+|   Process: <Process>, Pid: <PID>, Address: <Address>
 <<Hexdump>>
 |
 <<Disassembly>>

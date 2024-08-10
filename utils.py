@@ -52,7 +52,8 @@ def replace_template_elements(template_text: str, key_map: dict):
         if f"<<{key}>>" in template_text:
             text = ""
             for line in value.split("\n"):
-                text += f"|     {line}\n"
+                clean_line = line.replace("\t", "    ").strip()
+                text += f"|     {clean_line}\n"
             template_text = template_text.replace(f"<<{key}>>", text)
         elif f"<{key}>" in template_text:
             template_text = template_text.replace(f"<{key}>", str(value))
@@ -118,29 +119,29 @@ def load_json_from_file(file_path):
 
 def format_results(results: dict):
     for result in results:
-        result["Hexdump"] = prettify_hexdump(result["Hexdump"])
-        result["Disassembly"] = prettify_disassembly(result["Disassembly"])
+        result["Hexdump"] = result["Hexdump"].strip('"')
+        result["Disassembly"] = result["Disassembly"].strip('"')
     return results
 
 
-def prettify_hexdump(hexdump_dict: dict):
-    text = ""
-    for entry in hexdump_dict:
-        address = entry['address']
-        hex_code = entry['hex']
-        char_repr = entry['char']
-        text += f"{address.replace('L', '').zfill(18)}  {hex_code.ljust(47)}   {char_repr}\n"
-    return text
+# def prettify_hexdump(hexdump_dict: dict):
+#     text = ""
+#     for entry in hexdump_dict:
+#         address = entry['address']
+#         hex_code = entry['hex']
+#         char_repr = entry['char']
+#         text += f"{address.replace('L', '').zfill(18)}  {hex_code.ljust(47)}   {char_repr}\n"
+#     return text
 
 
-def prettify_disassembly(disassembly_dict: dict):
-    text = ""
-    for entry in disassembly_dict:
-        address = entry['address']
-        hex_code = entry['hex']
-        instruction = entry['instruction']
-        text += f"{address.replace('L', '').zfill(18)} {hex_code.ljust(16)} {instruction}\n"
-    return text
+# def prettify_disassembly(disassembly_dict: dict):
+#     text = ""
+#     for entry in disassembly_dict:
+#         address = entry['address']
+#         hex_code = entry['hex']
+#         instruction = entry['instruction']
+#         text += f"{address.replace('L', '').zfill(18)} {hex_code.ljust(16)} {instruction}\n"
+#     return text
 
 
 def get_folder_names(directory):

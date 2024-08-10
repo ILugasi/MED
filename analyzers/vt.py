@@ -18,7 +18,7 @@ VT_RESULTS_FILE = "vt_results.txt"
 
 
 def get_dnr_files(directory):
-    pattern = os.path.join(directory, '*.dnr')
+    pattern = os.path.join(directory, '*.dmp')
     dnr_files = glob.glob(pattern)
     return dnr_files
 
