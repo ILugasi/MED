@@ -33,6 +33,7 @@ def analyze(directory):
     for file in files:
         ids[upload_file(file)] = os.path.basename(file)
     for file_id in ids.keys():
+        ret += f"\n----{ids[file_id]}----\n"
         found = False
         results = get_scan_results(file_id)
         for key, value in results.items():
@@ -41,6 +42,7 @@ def analyze(directory):
                 found = True
         if not found:
             ret += f"{ids[file_id]}:no detection found\n"
+
 
     now = datetime.now().strftime('%H:%M:%S %d/%m/%Y')
     results = {
