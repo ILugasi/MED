@@ -22,18 +22,30 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
 
     def build_options_params(self):
         return {
-            'scan dump file': self.scan_dump_file_option
+            'scan dump file': self.scan_dump_file,
+            'live scan': self.live_scan
         }
-    
-    def scan_dump_file_option(self):
-        dump_file_path = input("Please enter dump file path: ").strip().strip('"').strip("'")
-        self.scan_dump_file(dump_file_path)
 
-    def scan_dump_file(self, dump_file_path: str):
+    def live_scan(self):
+        base_path = get_base_path()
+        mem_exe_path = os.path.join(base_path, "Live-utils", "winpmem_mini_86.exe")
+        process = subprocess.Popen(mem_exe_path, "-l")
+        logger.info(f"Starting a MED live scan")
+        self.scan("winpmem://pmem")
+        process.terminate()
+        process.wait()
+        ScreenMgmt.get_screen("results", self.passed_params)
+
+    def scan_dump_file(self):
+        dump_file_path = input("Please enter dump file path: ").strip().strip('"').strip("'")
+        logger.info(f"Starting a MED scan on file: '{dump_file_path}'")
+        self.scan(dump_file_path)
+        ScreenMgmt.get_screen("results", self.passed_params)
+
+    def scan(self, target_path: str):
         base_path = get_base_path()
         python_path = os.getenv("PYTHON_PATH")
         out_folder_path = create_folder()
-        volatility_log_path = os.path.join(base_path, get_relative_log_folder(), VOLATILITY_LOG_PATH)
         script_path = os.path.join(base_path, "volatility3", "vol.py")
         command = 'windows.med'
         cmd = [
@@ -41,14 +53,10 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
             script_path,
             '-r=json',
             '-o', out_folder_path,
-            '-f', dump_file_path,
+            '-f', target_path,
             command,
             '--dump'
         ]
-        logger.info(f"Starting a MED dump scan on file: '{dump_file_path}'")
-
-        # Event to stop the tailing thread
-        stop_event = threading.Event()
 
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         while True:
@@ -64,8 +72,6 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
 
         stdout = process.stdout.read()
 
-        stop_event.set()
-
         if return_code != 0:
             logger.error(f"MED dump scan resulted error\n"
                          f"Press ENTER to return to the main menu:\n")
@@ -76,4 +82,5 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
             logger.info(f"MED dump scan finished successfully, saving results to {out_folder_path}")
             save_json_to_folder(formatted_results, out_folder_path, "results.json")
             self.passed_params["out_folder"] = out_folder_path
-            ScreenMgmt.get_screen("results", self.passed_params)
+
+
