@@ -88,7 +88,7 @@ class MED(interfaces.plugins.PluginInterface):
                     process_info["Vad Tag"] = str(vad.get_tag())
                     process_info["Protection"] = vad.get_protection(vadinfo.VadInfo(self.context, self.config_path).protect_values(self.context, kernel.layer_name, kernel.symbol_table_name), winnt_protections)
                     memory_data = proc_layer.read(vad.get_start(), vad.get_end() - vad.get_start())
-                    process_info["Hexdump"] = format_hints.HexBytes(memory_data[:memory_data.find(b'\x00'*10)+0x10])
+                    process_info["Hexdump"] = format_hints.HexBytes(memory_data[16])
                     is_32bit_arch = not symbols.symbol_table_is_64bit(
                         self.context, kernel.symbol_table_name
                     )
@@ -98,7 +98,7 @@ class MED(interfaces.plugins.PluginInterface):
                         architecture = "intel64"
 
                     disasm = interfaces.renderers.Disassembly(
-                        memory_data[:memory_data.find(b'\x00'*10)+0x10], vad.get_start(), architecture
+                        memory_data[:16], vad.get_start(), architecture
                     )
                     if self.config["dump"]:
                         f = vadinfo.VadInfo(self.context, self.config_path).vad_dump(self.context, process,vad,self.open)
