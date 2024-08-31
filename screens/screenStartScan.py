@@ -29,7 +29,7 @@ class ScreenStartScan(ScreenMgmt, metaclass=SingletonMeta):
     def live_scan(self):
         base_path = get_base_path()
         mem_exe_path = os.path.join(base_path, "Live-utils", "winpmem_mini_x86.exe")
-        process = subprocess.Popen(mem_exe_path, "-l")
+        process = subprocess.Popen([mem_exe_path, "-l"], bufsize=0)
         logger.info(f"Starting a MED live scan")
         self.scan("winpmem://pmem")
         process.terminate()
